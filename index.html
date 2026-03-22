@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FraudGuard - Credit Card Fraud Detection</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060a06;--bg2:#0b110b;--bg3:#101810;--bg4:#172017;--bg5:#1e2b1e;
+  --green:#00e676;--green2:#00c853;--green3:#388e3c;--green4:#1b5e20;
+  --red:#ff1744;--red2:#d50000;--red-dim:rgba(255,23,68,0.15);
+  --amber:#ffab00;--amber-dim:rgba(255,171,0,0.15);--cyan:#00e5ff;
+  --text:#e8f5e9;--text2:#81c784;--text3:#4a7c59;--text4:#2d4d35;
+  --border:rgba(0,230,118,0.08);--border2:rgba(0,230,118,0.15);--border3:rgba(0,230,118,0.25);
+  --mono:'JetBrains Mono',monospace;--display:'Syne',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,230,118,0.013) 3px,rgba(0,230,118,0.013) 4px);pointer-events:none;z-index:9999}
+h1,h2,h3{font-family:var(--display);font-weight:700}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--green4);border-radius:2px}
+.page{display:none}.page.active{display:block}
+
+/* LOGIN */
+#page-login{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.login-bg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 20% 50%,rgba(0,230,118,0.06) 0%,transparent 70%),radial-gradient(ellipse 40% 60% at 80% 20%,rgba(0,229,255,0.04) 0%,transparent 70%)}
+.login-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,230,118,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,230,118,0.04) 1px,transparent 1px);background-size:40px 40px}
+.login-box{position:relative;width:420px;padding:48px;background:var(--bg2);border:1px solid var(--border2);animation:appear .6s ease both}
+@keyframes appear{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.logo-wrap{display:flex;align-items:center;gap:12px;margin-bottom:40px}
+.logo-mark{width:36px;height:36px;border:2px solid var(--green);display:flex;align-items:center;justify-content:center}
+.logo-mark::before{content:'';width:12px;height:12px;background:var(--green);animation:blink 1.5s steps(1) infinite}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+.logo-name{font-family:var(--display);font-size:22px;font-weight:800;color:var(--green);letter-spacing:1px}
+.logo-sub{font-size:10px;color:var(--text3);letter-spacing:2px;text-transform:uppercase}
+.login-sub{font-size:13px;color:var(--text2);margin-bottom:32px}
+.field{margin-bottom:20px}
+.field label{display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
+.field input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:13px;padding:12px 14px;outline:none;transition:border-color .2s}
+.field input:focus{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
+.field input::placeholder{color:var(--text4)}
+.login-hint{font-size:11px;color:var(--text3);margin-bottom:28px;padding:10px 12px;background:var(--bg3);border-left:2px solid var(--green3)}
+.login-hint span{color:var(--green2)}
+.btn-login{width:100%;background:var(--green4);border:1px solid var(--green3);color:var(--green);font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:14px;cursor:pointer;transition:all .2s}
+.btn-login:hover{background:var(--green3);box-shadow:0 0 20px rgba(0,230,118,0.2)}
+.login-err{margin-top:14px;font-size:11px;color:var(--red);text-align:center;min-height:16px}
+
+/* APP SHELL */
+#page-app{display:none}
+#page-app.active{display:flex;flex-direction:column;min-height:100vh}
+.app-header{height:54px;background:var(--bg2);border-bottom:1px solid var(--border2);display:flex;align-items:center;padding:0 24px;position:sticky;top:0;z-index:100}
+.hdr-logo{display:flex;align-items:center;gap:10px;margin-right:40px}
+.hdr-mark{width:26px;height:26px;border:1.5px solid var(--green);display:flex;align-items:center;justify-content:center}
+.hdr-mark::before{content:'';width:8px;height:8px;background:var(--green);animation:blink 2s steps(1) infinite}
+.hdr-name{font-family:var(--display);font-size:15px;font-weight:800;color:var(--green);letter-spacing:.5px}
+.hdr-nav{display:flex;flex:1}
+.nav-item{padding:0 18px;height:54px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.nav-item:hover{color:var(--text2)}.nav-item.active{color:var(--green);border-bottom-color:var(--green)}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.hdr-right{display:flex;align-items:center;gap:16px;margin-left:auto}
+.api-pill{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--text3);letter-spacing:.5px}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot.demo{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+.dot.live{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hdr-user{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);padding:4px 8px;border:1px solid var(--border)}
+.avatar{width:24px;height:24px;background:var(--green4);border:1px solid var(--green3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--green2)}
+.btn-out{background:none;border:1px solid var(--border2);color:var(--text3);font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:5px 10px;cursor:pointer;transition:all .15s}
+.btn-out:hover{border-color:var(--red);color:var(--red)}
+.app-body{flex:1;padding:28px 24px}
+.subpage{display:none}.subpage.active{display:block}
+
+/* SHARED */
+.sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:24px}
+.sec-title{font-family:var(--display);font-size:22px;font-weight:700}
+.sec-tag{font-size:10px;color:var(--green);background:var(--green4);border:1px solid var(--green3);padding:2px 8px;letter-spacing:1px;text-transform:uppercase}
+.mstrip{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border2);border:1px solid var(--border2);margin-bottom:24px}
+.mcell{background:var(--bg2);padding:16px 18px}
+.mlbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
+.mval{font-size:24px;font-weight:600;font-family:var(--display);color:var(--text);transition:all .3s}
+.mval.g{color:var(--green)}.mval.r{color:var(--red)}.mval.a{color:var(--amber)}.mval.c{color:var(--cyan)}
+.msub{font-size:10px;color:var(--text4);margin-top:2px}
+.card{background:var(--bg2);border:1px solid var(--border2);padding:20px}
+.card-hdr{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-hdr::after{content:'';flex:1;height:1px;background:var(--border)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.gmain{display:grid;grid-template-columns:380px 1fr;gap:16px}
+.btn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-family:var(--mono);font-size:11px;padding:7px 14px;cursor:pointer;transition:all .15s;letter-spacing:.5px}
+.btn:hover{background:var(--bg4);border-color:var(--border3);color:var(--text)}
+.btn-score{width:100%;background:var(--green4);border:1px solid var(--green3);color:var(--green);font-family:var(--display);font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:13px;cursor:pointer;transition:all .2s;margin-top:20px;position:relative;overflow:hidden}
+.btn-score:hover{background:var(--green3);box-shadow:0 0 24px rgba(0,230,118,0.2)}
+.btn-score.fire{background:var(--green3)}
+.slg{margin-bottom:16px}
+.slh{display:flex;justify-content:space-between;margin-bottom:6px}
+.sll{font-size:11px;color:var(--text2)}
+.slv{font-size:12px;font-weight:600;color:var(--green);min-width:60px;text-align:right}
+.slv.neg{color:var(--amber)}.slv.sneg{color:var(--red)}
+input[type=range]{-webkit-appearance:none;width:100%;height:2px;background:var(--bg5);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--green);border:2px solid var(--bg);cursor:pointer;transition:box-shadow .15s}
+input[type=range]::-webkit-slider-thumb:hover{box-shadow:0 0 8px var(--green)}
+.slr{display:flex;justify-content:space-between;font-size:9px;color:var(--text4);margin-top:3px}
+.tgrp{margin-bottom:18px}
+.ttrack{position:relative;margin-top:22px}
+.tmark{position:absolute;top:-19px;font-size:9px;color:var(--amber);transform:translateX(-50%);white-space:nowrap;transition:left .3s}
+.tlbls{display:flex;justify-content:space-between;font-size:9px;color:var(--text4);margin-top:3px}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:18px}
+.sbtn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:9px 10px;cursor:pointer;font-family:var(--mono);font-size:11px;text-align:left;transition:all .15s;position:relative}
+.sbtn::before{content:attr(data-type);display:block;font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
+.sbtn:hover{background:var(--bg4);border-color:var(--green3);color:var(--green)}
+.sbtn.fr:hover{border-color:rgba(213,0,0,.5);color:var(--red)}
+.sbtn.fr::after{content:'!';position:absolute;top:6px;right:8px;font-size:11px;color:var(--red2);font-weight:700}
+.banner{display:flex;align-items:center;gap:10px;padding:8px 14px;margin-bottom:20px;font-size:11px;background:var(--amber-dim);border:1px solid rgba(255,171,0,.2);color:var(--amber)}
+.banner.live{background:rgba(0,230,118,.06);border-color:var(--green4);color:var(--green2)}
+.verd{font-family:var(--display);font-size:38px;font-weight:800;letter-spacing:1px;margin-bottom:6px;transition:all .3s}
+.verd.ap{color:var(--green);text-shadow:0 0 30px rgba(0,230,118,.3)}
+.verd.dc{color:var(--red);text-shadow:0 0 30px rgba(255,23,68,.3)}
+.verd.wt{color:var(--text4)}
+.vsub{font-size:12px;color:var(--text3);margin-bottom:18px}
+.pbar-sec{margin-bottom:18px}
+.pbar-hd{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:6px}
+.pbar-track{height:4px;background:var(--bg5);position:relative;overflow:visible}
+.pbar-fill{height:100%;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.pbar-fill.safe{background:var(--green2);box-shadow:0 0 8px rgba(0,200,83,.4)}
+.pbar-fill.bad{background:var(--red);box-shadow:0 0 8px rgba(255,23,68,.4)}
+.pbar-tl{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--amber);transition:left .3s}
+.pbar-tlbl{position:absolute;top:-17px;font-size:9px;color:var(--amber);transform:translateX(-50%);white-space:nowrap;transition:left .3s}
+.pbar-ax{display:flex;justify-content:space-between;font-size:9px;color:var(--text4);margin-top:3px}
+.frow{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.frow:last-child{border-bottom:none}
+.flbl{color:var(--text3)}.fval{font-weight:500;color:var(--text)}
+.fval.hi{color:var(--red)}.fval.md{color:var(--amber)}.fval.lo{color:var(--green2)}
+.al-item{border-left:2px solid;padding:9px 12px;margin-bottom:6px;animation:slin .25s ease}
+@keyframes slin{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.al-item.cr{background:var(--red-dim);border-color:var(--red)}
+.al-item.wa{background:var(--amber-dim);border-color:var(--amber)}
+.al-item.ok{background:rgba(0,230,118,.06);border-color:var(--green3)}
+.al-type{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:2px}
+.al-item.cr .al-type{color:var(--red)}.al-item.wa .al-type{color:var(--amber)}.al-item.ok .al-type{color:var(--green2)}
+.al-msg{font-size:11px;color:var(--text2)}
+.txrow{display:grid;grid-template-columns:68px 76px 56px 1fr 60px 52px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;transition:background .1s}
+.txrow:hover{background:var(--bg3);padding-left:6px}.txrow:last-child{border-bottom:none}
+.tdim{color:var(--text3)}.tap{color:var(--green2);font-weight:600}.tdc{color:var(--red);font-weight:600}
+.badge{display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 10px}
+.badge.bap{background:rgba(0,200,83,.12);color:var(--green2);border:1px solid var(--green4)}
+.badge.bdc{background:rgba(255,23,68,.12);color:var(--red);border:1px solid rgba(213,0,0,.3)}
+.ctabs{display:flex;border-bottom:1px solid var(--border2);margin-bottom:16px}
+.ctab{padding:7px 16px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.ctab:hover{color:var(--text2)}.ctab.active{color:var(--green);border-bottom-color:var(--green)}
+.dw{display:flex;align-items:flex-end;gap:3px;height:80px;margin-bottom:6px}
+.dc{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.db{width:100%;border-radius:1px;transition:height .4s;min-height:2px}
+.db.safe{background:var(--green4)}.db.hot{background:var(--red2)}
+.dcnt{font-size:9px;color:var(--text4);height:12px}.dlbl{font-size:9px;color:var(--text4)}
+.dax{display:flex;justify-content:space-between;font-size:9px;color:var(--text4)}
+.ttable{width:100%;border-collapse:collapse;font-size:12px}
+.ttable th{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);padding:0 0 8px;font-weight:400;text-align:left}
+.ttable td{padding:6px 0;border-bottom:1px solid var(--border);color:var(--text2)}
+.ttable tr:last-child td{border-bottom:none}
+.ttable .cur td{color:var(--text);font-weight:600}
+.ttable .cur td:first-child::before{content:'\25B6  ';color:var(--amber);font-size:8px}
+.tdc-d{color:var(--red)!important}.tdc-a{color:var(--green2)!important}
+.dtable{width:100%;border-collapse:collapse}
+.dtable td{padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)}
+.dtable td:last-child{text-align:right;font-weight:500;color:var(--text)}
+.dtable tr:last-child td{border-bottom:none}
+.pgrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border2);border:1px solid var(--border2);margin-bottom:24px}
+.fbar{margin-bottom:12px}
+.fbh{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px}
+.fbn{color:var(--text2)}.fbs{color:var(--green2)}
+.fbtrack{background:var(--bg5);height:3px}
+.fbfill{height:3px;background:var(--green4)}
+.hnums{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border2);border:1px solid var(--border2);margin-bottom:24px}
+.hcell{background:var(--bg2);padding:28px;text-align:center}
+.hnum{font-family:var(--display);font-size:48px;font-weight:800;color:var(--green);line-height:1;margin-bottom:8px}
+.hlbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3)}
+.pstep{display:flex;gap:16px;padding:14px 0;border-bottom:1px solid var(--border)}
+.pstep:last-child{border-bottom:none}
+.psnum{font-size:11px;color:var(--green3);font-weight:700;min-width:28px;padding-top:1px;font-family:var(--display)}
+.psname{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;font-family:var(--display)}
+.psdesc{font-size:11px;color:var(--text3);line-height:1.6}
+.dcrd{border-left:2px solid var(--green3);padding-left:14px;margin-bottom:14px}
+.dcrdq{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
+.dcrda{font-size:11px;color:var(--text3);line-height:1.6}
+.empty{color:var(--text4);font-size:12px;padding:12px 0}
+@media(max-width:900px){.gmain{grid-template-columns:1fr}.mstrip{grid-template-columns:repeat(3,1fr)}.hnums{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="page-login" class="page active">
+  <div class="login-bg"></div>
+  <div class="login-grid"></div>
+  <div class="login-box">
+    <div class="logo-wrap">
+      <div class="logo-mark"></div>
+      <div><div class="logo-name">FRAUDGUARD</div><div class="logo-sub">Detection System v1.0</div></div>
+    </div>
+    <div class="login-sub">Sign in to access the dashboard</div>
+    <div class="field"><label>Username</label><input type="text" id="lu" placeholder="enter username" autocomplete="off"></div>
+    <div class="field"><label>Password</label><input type="password" id="lp" placeholder="enter password"></div>
+    <div class="login-hint">Demo credentials &mdash; user: <span>admin</span> &nbsp;|&nbsp; pass: <span>fraud2024</span></div>
+    <button class="btn-login" onclick="doLogin()">ACCESS SYSTEM</button>
+    <div class="login-err" id="lerr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="page-app" class="page">
+  <header class="app-header">
+    <div class="hdr-logo"><div class="hdr-mark"></div><div class="hdr-name">FRAUDGUARD</div></div>
+    <nav class="hdr-nav">
+      <div class="nav-item active" id="nav-score" onclick="showSub('score')"><div class="nav-dot"></div>Live Scoring</div>
+      <div class="nav-item" id="nav-analytics" onclick="showSub('analytics')"><div class="nav-dot"></div>Analytics</div>
+      <div class="nav-item" id="nav-system" onclick="showSub('system')"><div class="nav-dot"></div>System</div>
+    </nav>
+    <div class="hdr-right">
+      <div class="api-pill"><div class="dot demo" id="adot"></div><span id="albl">DEMO MODE</span></div>
+      <div class="hdr-user"><div class="avatar" id="uav">AD</div><span id="uname">admin</span></div>
+      <button class="btn-out" onclick="doLogout()">LOGOUT</button>
+    </div>
+  </header>
+  <div class="app-body">
+
+    <!-- SCORING -->
+    <div id="sub-score" class="subpage active">
+      <div class="sec-head"><div class="sec-title">Live Transaction Scoring</div><div class="sec-tag" id="mtag">DEMO MODE</div></div>
+      <div id="mbanner" class="banner"><span>&#9888;</span><span id="mtext">Running in demo mode. Set API_URL in the script to connect to your Railway deployment.</span></div>
+      <div class="mstrip">
+        <div class="mcell"><div class="mlbl">Transactions</div><div class="mval" id="m1">0</div><div class="msub">this session</div></div>
+        <div class="mcell"><div class="mlbl">Fraud detected</div><div class="mval r" id="m2">0</div><div class="msub">declined</div></div>
+        <div class="mcell"><div class="mlbl">Flag rate</div><div class="mval a" id="m3">0.00%</div><div class="msub">of all transactions</div></div>
+        <div class="mcell"><div class="mlbl">Avg latency</div><div class="mval c" id="m4">--</div><div class="msub">target &lt;100ms</div></div>
+        <div class="mcell"><div class="mlbl">False alarms</div><div class="mval" id="m5">0</div><div class="msub">legitimate blocked</div></div>
+      </div>
+      <div class="gmain">
+        <div class="card">
+          <div class="card-hdr">Transaction Input</div>
+          <div style="font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Quick Scenarios</div>
+          <div class="sgrid">
+            <button class="sbtn" data-type="Legitimate" onclick="preset('ld')">Day purchase<br><span style="color:var(--text4);font-size:10px">EUR 45 @ 14:00</span></button>
+            <button class="sbtn" data-type="Legitimate" onclick="preset('ll')">Large retail<br><span style="color:var(--text4);font-size:10px">EUR 920 @ 11:00</span></button>
+            <button class="sbtn fr" data-type="Fraud" onclick="preset('ct')">Card testing<br><span style="color:var(--text4);font-size:10px">EUR 1 @ 03:00</span></button>
+            <button class="sbtn fr" data-type="Fraud" onclick="preset('nf')">Night fraud<br><span style="color:var(--text4);font-size:10px">EUR 499 @ 02:00</span></button>
+            <button class="sbtn fr" data-type="Fraud" style="grid-column:span 2" onclick="preset('hv')">High-value attack &mdash; EUR 1850 @ 01:00</button>
+          </div>
+          <div style="font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Manual Input</div>
+          <div class="slg"><div class="slh"><span class="sll">Amount (EUR)</span><span class="slv" id="va">88.00</span></div><input type="range" min="0" max="2500" step="1" value="88" id="sa" oninput="sv('a',this.value)"><div class="slr"><span>0</span><span>EUR 2,500</span></div></div>
+          <div class="slg"><div class="slh"><span class="sll">Hour of day</span><span class="slv" id="vh">14:00</span></div><input type="range" min="0" max="23" step="1" value="14" id="sh" oninput="sv('h',this.value)"><div class="slr"><span>00:00</span><span>23:00</span></div></div>
+          <div class="slg"><div class="slh"><span class="sll">V14 &mdash; primary fraud indicator</span><span class="slv" id="vv">0.0</span></div><input type="range" min="-15" max="5" step="0.1" value="0" id="sv14" oninput="sv('v',this.value)"><div class="slr"><span>-15.0 (strong signal)</span><span>+5.0 (low)</span></div></div>
+          <div class="slg"><div class="slh"><span class="sll">V4 &mdash; secondary indicator</span><span class="slv" id="v4v">0.0</span></div><input type="range" min="-5" max="16" step="0.1" value="0" id="sv4" oninput="sv('4',this.value)"><div class="slr"><span>-5.0</span><span>+16.0</span></div></div>
+          <div class="tgrp"><div class="slh"><span class="sll">Decision threshold</span><span class="slv" style="color:var(--amber)" id="vth">0.74</span></div><div class="ttrack"><div class="tmark" id="tmk" style="left:63%">&larr; 0.74</div><input type="range" min="0.30" max="0.99" step="0.01" value="0.74" id="sth" oninput="sv('t',this.value)"></div><div class="tlbls"><span>&larr; Higher recall</span><span>Higher precision &rarr;</span></div></div>
+          <button class="btn-score" id="sbtn" onclick="scoreTx()">&#9654;&nbsp;&nbsp;SCORE TRANSACTION</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="card-hdr">Model Decision</div>
+            <div class="verd wt" id="dverd">AWAITING INPUT</div>
+            <div class="vsub" id="dsub">Score a transaction using the panel on the left</div>
+            <div class="pbar-sec">
+              <div class="pbar-hd"><span>Fraud probability</span><span id="dscore" style="font-size:13px;font-weight:600">--</span></div>
+              <div class="pbar-track"><div class="pbar-fill safe" id="dbar" style="width:0%"></div><div class="pbar-tl" id="dtl" style="left:63%"></div><div class="pbar-tlbl" id="dtlbl" style="left:63%">0.74</div></div>
+              <div class="pbar-ax"><span>0%</span><span>50%</span><span>100%</span></div>
+            </div>
+            <div>
+              <div class="frow"><span class="flbl">Amount</span><span class="fval" id="fdamt">--</span></div>
+              <div class="frow"><span class="flbl">Time of day</span><span class="fval" id="fdhr">--</span></div>
+              <div class="frow"><span class="flbl">Night window</span><span class="fval" id="fdnight">--</span></div>
+              <div class="frow"><span class="flbl">V14 signal</span><span class="fval" id="fdv14">--</span></div>
+              <div class="frow"><span class="flbl">Threshold used</span><span class="fval" id="fdth">--</span></div>
+              <div class="frow"><span class="flbl">Latency</span><span class="fval lo" id="fdlat">--</span></div>
+              <div class="frow"><span class="flbl">Source</span><span class="fval" id="fdsrc">--</span></div>
+            </div>
+          </div>
+          <div class="card"><div class="card-hdr">Alerts</div><div id="afeed"><div class="empty">No alerts. Score a transaction to begin.</div></div></div>
+          <div class="card" style="flex:1">
+            <div class="ctabs">
+              <div class="ctab active" id="ct-log" onclick="showCtab('log')">Transaction log</div>
+              <div class="ctab" id="ct-dist" onclick="showCtab('dist')">Score distribution</div>
+              <div class="ctab" id="ct-thresh" onclick="showCtab('thresh')">Threshold analysis</div>
+            </div>
+            <div id="cp-log">
+              <div style="display:grid;grid-template-columns:68px 76px 56px 1fr 60px 52px;gap:8px;padding:0 0 8px;border-bottom:1px solid var(--border2)">
+                <span style="font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:1px">Decision</span>
+                <span style="font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:1px">Amount</span>
+                <span style="font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:1px">Hour</span>
+                <span style="font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:1px">Score</span>
+                <span style="font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:1px">Latency</span>
+                <span style="font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:1px">V14</span>
+              </div>
+              <div id="txlog"><div class="empty">No transactions yet.</div></div>
+            </div>
+            <div id="cp-dist" style="display:none"><div style="font-size:11px;color:var(--text3);margin-bottom:12px">Score distribution. Red bars exceed the decision threshold.</div><div class="dw" id="dchart"><div class="empty">Score transactions to populate.</div></div><div class="dax"><span>0-10%</span><span>50%</span><span>90-100%</span></div></div>
+            <div id="cp-thresh" style="display:none"><div style="font-size:11px;color:var(--text3);margin-bottom:12px">Effect of threshold on approvals and declines. Triangle marks deployed threshold.</div><div id="tbody"><div class="empty">Score at least 2 transactions first.</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div id="sub-analytics" class="subpage">
+      <div class="sec-head"><div class="sec-title">Model Analytics</div><div class="sec-tag">TRAINED MODEL</div></div>
+      <div class="pgrid4">
+        <div class="mcell"><div class="mlbl">Session flag rate</div><div class="mval g" id="ar">--</div><div class="msub">this session</div></div>
+        <div class="mcell"><div class="mlbl">Model PR-AUC</div><div class="mval">0.8068</div><div class="msub">56,746 test transactions</div></div>
+        <div class="mcell"><div class="mlbl">CV PR-AUC</div><div class="mval g">0.8478</div><div class="msub">5-fold SMOTE in fold</div></div>
+        <div class="mcell"><div class="mlbl">Matthews CC</div><div class="mval">0.8655</div><div class="msub">near-perfect separation</div></div>
+      </div>
+      <div class="grid2" style="margin-bottom:16px">
+        <div class="card"><div class="card-hdr">Session score distribution</div><div class="dw" id="adist" style="height:100px"><div class="empty">Score transactions on Live Scoring tab first.</div></div><div class="dax"><span>0-10%</span><span>50%</span><span>90-100%</span></div></div>
+        <div class="card"><div class="card-hdr">Threshold sensitivity</div><div id="athresh"><div class="empty">Score transactions on Live Scoring tab first.</div></div></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><div class="card-hdr">Trained model performance</div>
+          <table class="dtable">
+            <tr><td>Dataset</td><td>2013 European CC transactions</td></tr>
+            <tr><td>Training samples</td><td>283,726</td></tr>
+            <tr><td>Fraud cases</td><td>473 (0.167%)</td></tr>
+            <tr><td>Test fraud caught</td><td style="color:var(--green2)">75/95 (78.9%)</td></tr>
+            <tr><td>False alarms (test)</td><td style="color:var(--green2)">4/56,651 (0.007%)</td></tr>
+            <tr><td>Brier score</td><td style="color:var(--green2)">0.0005</td></tr>
+            <tr><td>Avg inference latency</td><td style="color:var(--green2)">~17ms</td></tr>
+            <tr><td>Deployed threshold</td><td>0.74</td></tr>
+            <tr><td>Optuna CV best</td><td style="color:var(--green)">0.8534</td></tr>
+          </table>
+        </div>
+        <div class="card"><div class="card-hdr">Feature importance (top 6)</div>
+          <div class="fbar"><div class="fbh"><span class="fbn">V14</span><span class="fbs">1303</span></div><div class="fbtrack"><div class="fbfill" style="width:100%"></div></div></div>
+          <div class="fbar"><div class="fbh"><span class="fbn">top_features_l2</span><span class="fbs">991</span></div><div class="fbtrack"><div class="fbfill" style="width:76%"></div></div></div>
+          <div class="fbar"><div class="fbh"><span class="fbn">V4_div_V12</span><span class="fbs">987</span></div><div class="fbtrack"><div class="fbfill" style="width:75%"></div></div></div>
+          <div class="fbar"><div class="fbh"><span class="fbn">V12</span><span class="fbs">379</span></div><div class="fbtrack"><div class="fbfill" style="width:29%"></div></div></div>
+          <div class="fbar"><div class="fbh"><span class="fbn">V14_div_V17</span><span class="fbs">355</span></div><div class="fbtrack"><div class="fbfill" style="width:27%"></div></div></div>
+          <div class="fbar"><div class="fbh"><span class="fbn">V14 (raw)</span><span class="fbs">334</span></div><div class="fbtrack"><div class="fbfill" style="width:25%"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYSTEM -->
+    <div id="sub-system" class="subpage">
+      <div class="sec-head"><div class="sec-title">System Information</div><div class="sec-tag">DIPLOMA PROJECT</div></div>
+      <div class="hnums">
+        <div class="hcell"><div class="hnum">11</div><div class="hlbl">Pipeline steps</div></div>
+        <div class="hcell"><div class="hnum">57</div><div class="hlbl">Engineered features</div></div>
+        <div class="hcell"><div class="hnum">0.86</div><div class="hlbl">F1 score</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><div class="card-hdr">Pipeline</div>
+          <div class="pstep"><div class="psnum">01</div><div><div class="psname">Problem definition</div><div class="psdesc">Binary classification on 578:1 imbalanced data. PR-AUC as primary metric, not accuracy.</div></div></div>
+          <div class="pstep"><div class="psnum">02</div><div><div class="psname">EDA and preprocessing</div><div class="psdesc">KS test for feature discrimination. RobustScaler on Amount and Time. 1,081 duplicates removed.</div></div></div>
+          <div class="pstep"><div class="psnum">03</div><div><div class="psname">Class imbalance</div><div class="psdesc">SMOTE (ratio=0.061) with class weights (300x). Applied inside CV folds to prevent leakage.</div></div></div>
+          <div class="pstep"><div class="psnum">04</div><div><div class="psname">Feature engineering</div><div class="psdesc">Time behavioural features, amount signals, pairwise V-feature interactions, L2 norm subspace.</div></div></div>
+          <div class="pstep"><div class="psnum">05-06</div><div><div class="psname">Model training and evaluation</div><div class="psdesc">LR, RF, XGBoost, LightGBM benchmarked. LightGBM selected. Threshold tuned on PR curve.</div></div></div>
+          <div class="pstep"><div class="psnum">07-08</div><div><div class="psname">Metrics and Optuna tuning</div><div class="psdesc">PR-AUC, ROC-AUC, MCC, Brier. 50 Bayesian trials over 12 parameters. CV best 0.8534.</div></div></div>
+          <div class="pstep"><div class="psnum">09-10</div><div><div class="psname">FastAPI and deployment</div><div class="psdesc">FastAPI with Pydantic v2. Docker plus Nginx. 17ms avg latency. 7 unit tests passing.</div></div></div>
+          <div class="pstep"><div class="psnum">11</div><div><div class="psname">Monitoring and feedback</div><div class="psdesc">KS drift detection, p95 latency alerting, chargeback feedback loop, retraining trigger.</div></div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card"><div class="card-hdr">Technology stack</div>
+            <table class="dtable">
+              <tr><td>Model</td><td>LightGBM 4.6.0</td></tr>
+              <tr><td>Tuning</td><td>Optuna 4.7.0 (TPE sampler)</td></tr>
+              <tr><td>Imbalance</td><td>imbalanced-learn 0.12.3</td></tr>
+              <tr><td>API framework</td><td>FastAPI 0.123 + Pydantic v2</td></tr>
+              <tr><td>Container</td><td>Docker + docker-compose</td></tr>
+              <tr><td>Reverse proxy</td><td>Nginx (100 req/s rate limit)</td></tr>
+              <tr><td>Monitoring</td><td>KS drift + latency p95</td></tr>
+              <tr><td>Python</td><td>3.12 / Kaggle</td></tr>
+            </table>
+          </div>
+          <div class="card"><div class="card-hdr">Key design decisions</div>
+            <div class="dcrd"><div class="dcrdq">Why PR-AUC not accuracy?</div><div class="dcrda">With 0.17% fraud rate, predicting all-legitimate achieves 99.83% accuracy and catches zero fraud. PR-AUC evaluates only the positive class.</div></div>
+            <div class="dcrd"><div class="dcrdq">Why threshold 0.74 not 0.5?</div><div class="dcrda">Default 0.5 is calibrated for 50% base rates. With 0.17% fraud, high confidence is required. 0.74 maximises F1 on the precision-recall curve.</div></div>
+            <div class="dcrd"><div class="dcrdq">Why SMOTE inside CV folds?</div><div class="dcrda">Applying SMOTE before splitting leaks synthetic points from validation data into training. ImbPipeline enforces correct fold-level application.</div></div>
+          </div>
+          <div class="card"><div class="card-hdr">API endpoints</div>
+            <table class="dtable">
+              <tr><td>POST /predict</td><td style="color:var(--green2)">Fraud scoring</td></tr>
+              <tr><td>GET /health</td><td style="color:var(--cyan)">Liveness check</td></tr>
+              <tr><td>GET /metrics</td><td style="color:var(--amber)">Live counters</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API_URL = '';
+const CREDS   = {admin:'fraud2024', analyst:'detect2024'};
+const TH      = 0.74;
+let S = {total:0,fraud:0,fp:0,lats:[],scores:[],log:[]};
+let CTH = TH, ACT = 'log', LIVE = false;
+
+function doLogin(){
+  const u=document.getElementById('lu').value.trim();
+  const p=document.getElementById('lp').value;
+  if(!CREDS[u]||CREDS[u]!==p){document.getElementById('lerr').textContent='Invalid credentials. Try admin / fraud2024';document.getElementById('lp').value='';return;}
+  document.getElementById('lerr').textContent='';
+  document.getElementById('page-login').classList.remove('active');
+  document.getElementById('page-app').classList.add('active');
+  document.getElementById('uav').textContent=u.substring(0,2).toUpperCase();
+  document.getElementById('uname').textContent=u;
+  checkApi(); setInterval(checkApi,15000);
+}
+document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('lu').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('lp').focus();});
+
+function doLogout(){
+  document.getElementById('page-app').classList.remove('active');
+  document.getElementById('page-login').classList.add('active');
+  document.getElementById('lu').value='';document.getElementById('lp').value='';
+  S={total:0,fraud:0,fp:0,lats:[],scores:[],log:[]};
+}
+
+async function checkApi(){
+  if(!API_URL){setMode(false);return;}
+  try{const r=await fetch(API_URL+'/health',{signal:AbortSignal.timeout(4000)});setMode(r.ok);}
+  catch{setMode(false);}
+}
+
+function setMode(on){
+  LIVE=on;
+  const dot=document.getElementById('adot'),lbl=document.getElementById('albl');
+  const tag=document.getElementById('mtag'),ban=document.getElementById('mbanner'),txt=document.getElementById('mtext');
+  if(on){dot.className='dot live';lbl.textContent='API ONLINE';tag.textContent='LIVE MODEL';ban.className='banner live';txt.textContent='Connected to deployed LightGBM model. All predictions use your real trained model.';}
+  else{dot.className='dot demo';lbl.textContent='DEMO MODE';tag.textContent='DEMO MODE';ban.className='banner';txt.textContent='Running in demo mode. Set API_URL in the script to connect to your Railway deployment.';}
+}
+
+function showSub(id){
+  document.querySelectorAll('.subpage').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('sub-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  if(id==='analytics'){rDist(true);rThresh(true);}
+}
+
+function sv(id,val){
+  const v=parseFloat(val);
+  if(id==='h'){document.getElementById('vh').textContent=Math.round(v).toString().padStart(2,'0')+':00';}
+  else if(id==='t'){document.getElementById('vth').textContent=v.toFixed(2);const p=((v-0.30)/(0.99-0.30)*100).toFixed(1);document.getElementById('tmk').style.left=p+'%';document.getElementById('tmk').textContent='<< '+v.toFixed(2);uTL(v);CTH=v;}
+  else if(id==='a'){document.getElementById('va').textContent=parseFloat(v).toFixed(2);}
+  else if(id==='v'){const e=document.getElementById('vv');e.textContent=v.toFixed(1);e.className='slv'+(v<-5?' sneg':v<-2?' neg':'');}
+  else if(id==='4'){document.getElementById('v4v').textContent=v.toFixed(1);}
+}
+
+function uTL(th){const p=(th*100).toFixed(1)+'%';document.getElementById('dtl').style.left=p;document.getElementById('dtlbl').style.left=p;document.getElementById('dtlbl').textContent=th.toFixed(2);}
+
+const PS={ld:{a:45,h:14,v:0.3,f:0.2},ll:{a:920,h:11,v:0.4,f:0.1},ct:{a:1,h:3,v:-2.2,f:3.9},nf:{a:499,h:2,v:-8.6,f:5.1},hv:{a:1850,h:1,v:-11.3,f:8.2}};
+function preset(k){const s=PS[k];document.getElementById('sa').value=s.a;sv('a',s.a);document.getElementById('sh').value=s.h;sv('h',s.h);document.getElementById('sv14').value=s.v;sv('v',s.v);document.getElementById('sv4').value=s.f;sv('4',s.f);}
+
+function demo(a,h,v,f){const vs=Math.max(0,-v/15),fs=Math.max(0,f/16),n=(h>=0&&h<=5)?0.14:0,as=a<5?0.09:(a>1200?0.04:0);return Math.min(0.9995,Math.max(0.0001,vs*0.60+fs*0.22+n+as+(Math.random()*0.04-0.02)));}
+
+async function scoreTx(){
+  const a=parseFloat(document.getElementById('sa').value),h=parseInt(document.getElementById('sh').value);
+  const v=parseFloat(document.getElementById('sv14').value),f=parseFloat(document.getElementById('sv4').value);
+  const th=parseFloat(document.getElementById('sth').value);
+  const btn=document.getElementById('sbtn');btn.classList.add('fire');btn.textContent='SCORING...';
+  let p,lat,src;
+  if(LIVE&&API_URL){
+    try{
+      const pl={Time:h*3600,Amount:a,V1:0,V2:0,V3:0,V4:f,V5:0,V6:0,V7:0,V8:0,V9:0,V10:0,V11:0,V12:0,V13:0,V14:v,V15:0,V16:0,V17:0,V18:0,V19:0,V20:0,V21:0,V22:0,V23:0,V24:0,V25:0,V26:0,V27:0,V28:0};
+      const r=await fetch(API_URL+'/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pl),signal:AbortSignal.timeout(5000)});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const res=await r.json();p=res.fraud_probability;lat=res.latency_ms.toFixed(1);src='LightGBM API';
+    }catch(e){const t0=performance.now();p=demo(a,h,v,f);lat=(performance.now()-t0+13+Math.random()*6).toFixed(1);src='Demo (API error)';}
+  }else{const t0=performance.now();p=demo(a,h,v,f);lat=(performance.now()-t0+13+Math.random()*6).toFixed(1);src='Demo simulation';}
+  btn.classList.remove('fire');btn.textContent='▶  SCORE TRANSACTION';
+  const fr=p>=th,pct=(p*100).toFixed(1),nt=h>=0&&h<=5,kn=(v<-2||(nt&&f>3));
+  S.total++;if(fr)S.fraud++;if(fr&&!kn)S.fp++;S.lats.push(parseFloat(lat));S.scores.push(p);
+  const avg=S.lats.reduce((a,b)=>a+b,0)/S.lats.length;
+  document.getElementById('m1').textContent=S.total;document.getElementById('m2').textContent=S.fraud;
+  document.getElementById('m3').textContent=((S.fraud/S.total)*100).toFixed(2)+'%';
+  document.getElementById('m4').textContent=avg.toFixed(1)+'ms';document.getElementById('m5').textContent=S.fp;
+  document.getElementById('ar').textContent=((S.fraud/S.total)*100).toFixed(1)+'%';
+  const vd=document.getElementById('dverd');vd.textContent=fr?'DECLINE':'APPROVE';vd.className='verd '+(fr?'dc':'ap');
+  document.getElementById('dsub').textContent=fr?'Flagged by '+src+' — score '+pct+'% exceeds threshold '+(th*100).toFixed(0)+'%':'Approved by '+src+' — score '+pct+'% below threshold '+(th*100).toFixed(0)+'%';
+  const bar=document.getElementById('dbar');bar.style.width=pct+'%';bar.className='pbar-fill '+(fr?'bad':'safe');
+  document.getElementById('dscore').textContent=pct+'%';uTL(th);
+  document.getElementById('fdamt').textContent='EUR '+a.toFixed(2);
+  document.getElementById('fdhr').textContent=h.toString().padStart(2,'0')+':00';
+  const ne=document.getElementById('fdnight');ne.textContent=nt?'YES - elevated risk':'No';ne.className='fval '+(nt?'hi':'lo');
+  const ve=document.getElementById('fdv14');ve.textContent=v.toFixed(2)+(v<-6?' (strong)':v<-2?' (moderate)':' (low)');ve.className='fval '+(v<-6?'hi':v<-2?'md':'lo');
+  document.getElementById('fdth').textContent=th.toFixed(2);
+  const le=document.getElementById('fdlat');le.textContent=lat+'ms';le.className='fval '+(parseFloat(lat)>70?'md':'lo');
+  document.getElementById('fdsrc').textContent=src;
+  const als=[];
+  if(fr&&p>0.95)als.push(['cr','HIGH-CONFIDENCE FRAUD','Score '+(p*100).toFixed(0)+'% — transaction DECLINED immediately']);
+  else if(fr)als.push(['cr','FRAUD DETECTED','Score '+(p*100).toFixed(0)+'% exceeds threshold '+(th*100).toFixed(0)+'% — DECLINED']);
+  if(nt&&a>200)als.push(['wa','BEHAVIOURAL FLAG','High-value EUR '+a.toFixed(2)+' at '+h.toString().padStart(2,'0')+':00 — night window elevated risk']);
+  if(a<=5&&v<-1)als.push(['wa','CARD TESTING PATTERN','EUR '+a.toFixed(2)+' with strong V14 signal — potential stolen card verification']);
+  if(parseFloat(lat)>70)als.push(['wa','LATENCY WARNING','Inference took '+lat+'ms — approaching 100ms SLA']);
+  if(!fr)als.push(['ok','TRANSACTION APPROVED','Probability '+(p*100).toFixed(1)+'% is below the '+(th*100).toFixed(0)+'% threshold']);
+  document.getElementById('afeed').innerHTML=als.map(([t,tp,m])=>'<div class="al-item '+t+'"><div class="al-type">'+tp+'</div><div class="al-msg">'+m+'</div></div>').join('');
+  S.log.unshift({a,h,v,f,p,fr,pct,lat,nt,th,src});if(S.log.length>12)S.log.pop();
+  if(ACT==='log')rLog();if(ACT==='dist')rDist(false);if(ACT==='thresh')rThresh(false);
+}
+
+function rLog(){
+  const el=document.getElementById('txlog');
+  if(!S.log.length){el.innerHTML='<div class="empty">No transactions yet.</div>';return;}
+  el.innerHTML=S.log.map(t=>'<div class="txrow"><span class="badge '+(t.fr?'bdc':'bap')+'">'+(t.fr?'DECLINE':'APPROVE')+'</span><span class="tdim">EUR '+t.a.toFixed(2)+'</span><span class="tdim">'+t.h.toString().padStart(2,'0')+':00'+(t.nt?' *':'')+'</span><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;background:var(--bg5);height:3px;max-width:120px"><div style="width:'+t.pct+'%;height:3px;background:'+(t.fr?'var(--red2)':'var(--green4)')+'"></div></div><span class="'+(t.fr?'tdc':'tap')+'">'+t.pct+'%</span></div><span class="tdim">'+t.lat+'ms</span><span class="tdim">'+t.v.toFixed(1)+'</span></div>').join('');
+}
+
+function rDist(an){
+  const bkts=new Array(10).fill(0);S.scores.forEach(s=>{bkts[Math.min(9,Math.floor(s*10))]++;});
+  const mx=Math.max(...bkts,1);
+  const html=bkts.map((c,i)=>{const h2=Math.max(2,Math.round((c/mx)*(an?90:72)));const ht=(i+1)/10>CTH;return '<div class="dc"><div class="dcnt">'+(c||'')+'</div><div class="db '+(ht?'hot':'safe')+'" style="height:'+h2+'px"></div><div class="dlbl">'+(i*10)+'</div></div>';}).join('');
+  const t=an?'adist':'dchart';document.getElementById(t).innerHTML=S.scores.length?html:'<div class="empty">Score transactions first.</div>';
+}
+
+function rThresh(an){
+  if(S.scores.length<2)return;
+  const rows=[0.30,0.50,0.60,0.74,0.85,0.95].map(th=>{const fl=S.scores.filter(s=>s>=th).length,ap=S.scores.length-fl,rt=((fl/S.scores.length)*100).toFixed(0),cur=Math.abs(th-0.74)<0.001;return '<tr class="'+(cur?'cur':'')+'"><td>'+th.toFixed(2)+'</td><td class="tdc-d">'+fl+' declined</td><td class="tdc-a">'+ap+' approved</td><td>'+rt+'% flagged</td></tr>';}).join('');
+  const tbl='<table class="ttable"><thead><tr><th>Threshold</th><th>Declined</th><th>Approved</th><th>Flag rate</th></tr></thead><tbody>'+rows+'</tbody></table><div style="font-size:10px;color:var(--text4);margin-top:8px">Triangle marks deployed threshold (0.74)</div>';
+  document.getElementById(an?'athresh':'tbody').innerHTML=tbl;
+}
+
+function showCtab(id){
+  ACT=id;['log','dist','thresh'].forEach(t=>{document.getElementById('ct-'+t).className='ctab'+(t===id?' active':'');document.getElementById('cp-'+t).style.display=t===id?'block':'none';});
+  if(id==='dist')rDist(false);if(id==='thresh')rThresh(false);if(id==='log')rLog();
+}
+
+uTL(TH);
+</script>
+</body>
+</html>
